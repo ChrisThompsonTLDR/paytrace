@@ -1,0 +1,30 @@
+{
+    "name": "christhompsontldr/paytrace",
+    "description": "Paytrace PHP API",
+    "authors": [
+        {
+            "name": "Chris Thompson",
+            "email": "christhompsontldr@gmail.com",
+            "homepage": "https://christhompsontldr.com"
+        }
+    ],
+    "keywords": ["laravel", "paytrace", "recurring"],
+    "homepage": "https://github.com/christhompsontldr/paytrace",
+    "support": {
+        "issues": "https://github.com/christhompsontldr/paytrace/issues",
+        "source": "https://github.com/christhompsontldr/paytrace"
+    },
+    "minimum-stability": "dev",
+    "require": {
+        "guzzlehttp/guzzle": "^6.2",
+        "nesbot/carbon": "~1.21"
+    },
+    "autoload": {
+        "classmap": [
+            "src/commands"
+        ],
+        "psr-4": {
+            "Christhompsontldr\\Paytrace\\": "src/"
+        }
+    }
+}
