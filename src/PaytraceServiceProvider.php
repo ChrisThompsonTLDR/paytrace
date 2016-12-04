@@ -49,8 +49,8 @@ class PaytraceServiceProvider extends ServiceProvider {
         $this->app->singleton('paytrace', function ($app) {
             $paytrace = new Paytrace();
 
-            $paytrace->setUsername(config('paytrace.username'));
-            $paytrace->setPassword(config('paytrace.password'));
+            $paytrace->username = config('paytrace.username');
+            $paytrace->password = config('paytrace.password');
 
             return $paytrace;
         });

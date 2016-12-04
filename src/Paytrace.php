@@ -7,9 +7,9 @@ use Carbon\Carbon;
 
 class Paytrace
 {
-    private $username, $password;
+    protected $username, $password;
 
-    private $transactionMap = [
+    protected $transactionMap = [
         'username' => 'UN',
         'password' => 'PSWD',
         'terms' => 'TERMS',
@@ -26,14 +26,17 @@ class Paytrace
         'numberOfBillingCycles' => 'TOTALCOUNT',
         'frequency' => 'FREQUENCY',
         'customerId' => 'CUSTID',
+        'subscriptionId' => 'RecurID',
     ];
 
-    private $customerMap = [
+    protected $customerMap = [
         'name' => 'BNAME',
         'id' => 'CUSTID',
         'cc' => 'CC',
         'expirationMonth' => 'EXPMNTH',
         'expirationYear' => 'EXPYR',
+        'address' => 'BADDRESS',
+        'zip' => 'BZIP',
     ];
 
     /**
@@ -78,22 +81,46 @@ class Paytrace
      */
     protected $subscriptionId = '';
 
-    //  SETTERS
 
-    public function setUsername($username)
+    public function __get($property)
     {
-        $this->username = $username;
+        if (property_exists($this, $property)) {
+            return $this->$property;
+        }
     }
 
-    public function setPassword($password)
+    public function __set($property, $value)
     {
-        $this->password = $password;
+        if (property_exists($this, $property)) {
+            $this->$property = $value;
+        }
+
+        return $this;
     }
 
     public function createCustomer($params = [])
     {
         //  add the method
         $params['method'] = 'CreateCustomer';
+
+        $values = [];
+
+        //  map keys to Paytrace's
+        foreach ($params as $key => $val) {
+            if (isset($this->customerMap[$key])) {
+                $values[] = $this->customerMap[$key] . '~' . $val;
+            }
+        }
+
+        $this->process($params);
+
+        return $this;
+    }
+
+    public function updateCustomer($params = [])
+    {
+        //  add the method
+        $params['method'] = 'UpdateCustomer';
 
         $values = [];
 
@@ -120,6 +147,26 @@ class Paytrace
         $params['method']          = 'ProcessTranx';
         $params['transactionType'] = 'Sale';
 
+        //  build customer if needed
+        if (isset($params['customer'])) {
+            $customer           = new self();
+            $customer->username = $this->username;
+            $customer->password = $this->password;
+
+            //  move cc up to customer
+            $customerParams                    = $params['customer'];
+            $customerParams['cc']              = $params['cc'];
+            $customerParams['expirationMonth'] = $params['expirationMonth'];
+            $customerParams['expirationYear']  = $params['expirationYear'];
+            $customerParams['terms']           = 'Y';
+            $paytraceCustomer                  = $customer->createCustomer($customerParams);
+
+            if ($paytraceCustomer->customerId) {
+                $this->customerId     = $paytraceCustomer->customerId;
+                $params['customerId'] = $paytraceCustomer->customerId;
+            }
+        }
+
         $this->process($params);
 
         return $this;
@@ -138,9 +185,9 @@ class Paytrace
 
         //  build customer if needed
         if (isset($params['customer'])) {
-            $customer = new self();
-            $customer->setUsername($this->username);
-            $customer->setPassword($this->password);
+            $customer           = new self();
+            $customer->username = $this->username;
+            $customer->password = $this->password;
 
             //  move cc up to customer
             $customerParams                    = $params['customer'];
@@ -151,6 +198,7 @@ class Paytrace
             $paytraceCustomer                  = $customer->createCustomer($customerParams);
 
             if ($paytraceCustomer->customerId) {
+                $this->customerId     = $paytraceCustomer->customerId;
                 $params['customerId'] = $paytraceCustomer->customerId;
             }
         }
@@ -177,6 +225,17 @@ class Paytrace
 
         //  format it
         $params['firstBillingDate'] = \Carbon\Carbon::parse($params['firstBillingDate'])->format('m/d/Y');
+
+        $this->process($params);
+
+        return $this;
+    }
+
+    public function cancelSubscription($params = [])
+    {
+        //  add the transaction type to the params
+        $params['method'] = 'DeleteRecur';
+        $params['terms']  = 'Y';
 
         $this->process($params);
 
@@ -243,9 +302,11 @@ class Paytrace
                 }
                 elseif ($key == 'CUSTID') {
                     $this->customerId = $val;
+                    $this->success = true;
                 }
                 elseif ($key == 'RECURID') {
                     $this->subscriptionId = $val;
+                    $this->success = true;
                 }
             }
         }
