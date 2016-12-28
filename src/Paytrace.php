@@ -14,6 +14,7 @@ class Paytrace
         'password' => 'PSWD',
         'terms' => 'TERMS',
         'method' => 'METHOD',
+
         'transactionType' => 'TRANXTYPE',
         'cc' => 'CC',
         'expirationMonth' => 'EXPMNTH',
@@ -30,13 +31,21 @@ class Paytrace
     ];
 
     protected $customerMap = [
+        'username' => 'UN',
+        'password' => 'PSWD',
+        'terms' => 'TERMS',
+        'method' => 'METHOD',
+
         'name' => 'BNAME',
         'id' => 'CUSTID',
         'cc' => 'CC',
         'expirationMonth' => 'EXPMNTH',
         'expirationYear' => 'EXPYR',
         'address' => 'BADDRESS',
+        'city' => 'BCITY',
+        'state' => 'BSTATE',
         'zip' => 'BZIP',
+        'email' => 'EMAIL',
     ];
 
     /**
@@ -103,16 +112,7 @@ class Paytrace
         //  add the method
         $params['method'] = 'CreateCustomer';
 
-        $values = [];
-
-        //  map keys to Paytrace's
-        foreach ($params as $key => $val) {
-            if (isset($this->customerMap[$key])) {
-                $values[] = $this->customerMap[$key] . '~' . $val;
-            }
-        }
-
-        $this->process($params);
+        $this->process($params, 'customer');
 
         return $this;
     }
@@ -122,16 +122,7 @@ class Paytrace
         //  add the method
         $params['method'] = 'UpdateCustomer';
 
-        $values = [];
-
-        //  map keys to Paytrace's
-        foreach ($params as $key => $val) {
-            if (isset($this->customerMap[$key])) {
-                $values[] = $this->customerMap[$key] . '~' . $val;
-            }
-        }
-
-        $this->process($params);
+        $this->process($params, 'customer');
 
         return $this;
     }
@@ -242,7 +233,7 @@ class Paytrace
         return $this;
     }
 
-    private function process($params = [])
+    private function process($params = [], $type = 'transaction')
     {
         //  reset
         $this->success = false;
@@ -259,18 +250,24 @@ class Paytrace
         $values = [];
 
         //  map keys to Paytrace's
-        foreach ($params as $key => $val) {
-            if (isset($this->transactionMap[$key])) {
-                $values[] = $this->transactionMap[$key] . '~' . $val;
+        if ($type == 'transaction') {
+            foreach ($params as $key => $val) {
+                if (isset($this->transactionMap[$key])) {
+                    $values[] = $this->transactionMap[$key] . '~' . $val;
+                }
+            }
+        } else {
+            //  map keys to Paytrace's
+            foreach ($params as $key => $val) {
+                if (isset($this->customerMap[$key])) {
+                    $values[] = $this->customerMap[$key] . '~' . $val;
+                }
             }
         }
 
-        //URL encode the request
-        $postfields['parmlist'] = implode('|', $values);
-
         $client = new Client();
         $response = (string) $client->post(config('paytrace.endpoint'), [
-            'form_params' => $postfields,
+            'form_params' => ['parmlist' => implode('|', $values)],
             'headers' => [
                 'MIME-Version' => '1.0',
                 'Content-type' => 'application/x-www-form-urlencoded',
