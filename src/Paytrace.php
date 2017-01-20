@@ -28,6 +28,7 @@ class Paytrace
         'frequency' => 'FREQUENCY',
         'customerId' => 'CUSTID',
         'subscriptionId' => 'RecurID',
+        'invoice' => 'INVOICE',
     ];
 
     protected $customerMap = [
