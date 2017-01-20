@@ -266,6 +266,10 @@ class Paytrace
             }
         }
 
+        if (config('paytrace.log', false)) {
+            info(implode('|', $values));
+        }
+
         $client = new Client();
         $response = (string) $client->post(config('paytrace.endpoint'), [
             'form_params' => ['parmlist' => implode('|', $values)],
